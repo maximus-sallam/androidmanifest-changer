@@ -19,18 +19,18 @@ import (
 )
 
 const (
-	tmpDir		  = "/tmp"
-	namespace	   = "http://schemas.android.com/apk/res/android"
-	versionCodeAttr = "versionCode"
-	versionNameAttr = "versionName"
+	tmpDir            = "/tmp"
+	namespace         = "http://schemas.android.com/apk/res/android"
+	versionCodeAttr   = "versionCode"
+	versionNameAttr   = "versionName"
 )
 
 type Config struct {
-	versionCode int32
-	versionName string
-	packageName string
-	minSdkVersion int32
-	targetSdkVersion int32
+	versionCode       int32
+	versionName       string
+	packageName       string
+	minSdkVersion     int32
+	targetSdkVersion  int32
 }
 
 func main() {
@@ -69,21 +69,21 @@ func main() {
 			flag.Usage()
 			os.Exit(2)
 		}
-		
+
 		path := flag.Arg(0)
 		listAttributes(path)
 		return
 	}
 
 	config := &Config{
-		versionCode: int32(*versionCode),
-		versionName: *versionName,
-		packageName: *packageName,
-		minSdkVersion: int32(*minSdkVersion),
+		versionCode:      int32(*versionCode),
+		versionName:      *versionName,
+		packageName:      *packageName,
+		minSdkVersion:    int32(*minSdkVersion),
 		targetSdkVersion: int32(*targetSdkVersion),
 	}
 
-	//path := flag.Arg(0)
+	path := flag.Arg(0)
 
 	if strings.HasSuffix(path, ".apk") {
 		updateApk(path, config)
@@ -148,7 +148,8 @@ func addToZip(zipPath string, name string, source *os.File) {
 	io.Copy(f, source)
 
 	absZipPath, err := filepath.Abs(zipPath)
-	if err != nil {10212.aab.out		log.Fatal(err)
+	if err != nil {
+		log.Fatal(err)
 	}
 	cmd := exec.Command("zip", absZipPath, name)
 	cmd.Dir = manifestDir
@@ -254,14 +255,14 @@ func printManifestAttributes(path string) {
 			continue
 		}
 		switch attr.GetName() {
-			case versionCodeAttr:
-				fmt.Println("versionCode:", attr.Value)
-			case versionNameAttr:
-				fmt.Println("versionName:", attr.Value)
-			}	
+		case versionCodeAttr:
+			fmt.Println("versionCode:", attr.Value)
+		case versionNameAttr:
+			fmt.Println("versionName:", attr.Value)
 		}
 	}
 }
+
 func updateManifest(path string, config *Config) {
 	in, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -272,6 +273,7 @@ func updateManifest(path string, config *Config) {
 	if err := proto.Unmarshal(in, xmlNode); err != nil {
 		log.Fatalln("Failed to parse manifest:", err)
 	}
+
 	for _, node := range xmlNode.GetElement().GetChild() {
 		if elem, ok := node.GetNode().(*XmlNode_Element); ok {
 			element := elem.Element
@@ -279,24 +281,24 @@ func updateManifest(path string, config *Config) {
 				for _, attr := range element.GetAttribute() {
 					if attr.GetNamespaceUri() != namespace {
 						continue
-							switch attr.GetName() {
-							case "minSdkVersion":
-								if config.minSdkVersion > 0 {
-									fmt.Println("Changing minSdkVersion from", attr.Value, "to", config.minSdkVersion)
-									attr.Value = strconv.Itoa(int(config.minSdkVersion))
-							}
-							case "targetSdkVersion":
-								if config.targetSdkVersion > 0 {
-									fmt.Println("Changing targetSdkVersion from", attr.Value, "to", config.targetSdkVersion)
-									attr.Value = strconv.Itoa(int(config.targetSdkVersion))
-								}
-							}
+					}
+					switch attr.GetName() {
+					case "minSdkVersion":
+						if config.minSdkVersion > 0 {
+							fmt.Println("Changing minSdkVersion from", attr.Value, "to", config.minSdkVersion)
+							attr.Value = strconv.Itoa(int(config.minSdkVersion))
+						}
+					case "targetSdkVersion":
+						if config.targetSdkVersion > 0 {
+							fmt.Println("Changing targetSdkVersion from", attr.Value, "to", config.targetSdkVersion)
+							attr.Value = strconv.Itoa(int(config.targetSdkVersion))
 						}
 					}
 				}
 			}
 		}
 	}
+
 	for _, attr := range xmlNode.GetElement().GetAttribute() {
 		if attr.GetNamespaceUri() == "" && attr.GetName() == "package" {
 			if config.packageName != "" {
@@ -338,3 +340,4 @@ func updateManifest(path string, config *Config) {
 		log.Fatalln("Error writing file:", err)
 	}
 }
+
