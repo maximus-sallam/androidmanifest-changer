@@ -19,10 +19,11 @@ import (
 )
 
 const (
-	tmpDir            = "/tmp"
-	namespace         = "http://schemas.android.com/apk/res/android"
-	versionCodeAttr   = "versionCode"
-	versionNameAttr   = "versionName"
+	tmpDir                  = "/tmp"
+	namespace               = "http://schemas.android.com/apk/res/android"
+	versionCodeAttr         = "versionCode"
+	versionNameAttr         = "versionName"
+    compileSdkVersionAttr   = "compileSdkVersion"
 )
 
 type Config struct {
@@ -31,6 +32,7 @@ type Config struct {
 	packageName       string
 	minSdkVersion     int32
 	targetSdkVersion  int32
+    compileSdkVersion int32
 }
 
 func main() {
@@ -40,7 +42,8 @@ func main() {
 	packageName := flag.String("package", "", "Set the application's package name. [string]")
 	minSdkVersion := flag.Uint("minSdkVersion", 0, "Set the minimum SDK version. [uint]")
 	targetSdkVersion := flag.Uint("targetSdkVersion", 0, "Set the target SDK version. [uint]")
-	list := flag.Bool("list", false, "List current values of versionCode, versionName, packageName, minSdkVersion, and targetSdkVersion. [bool]")
+    compileSdkVersion := flag.Uint("compileSdkVersion", 0, "Set the compile SDK version. [unit]")
+	list := flag.Bool("list", false, "List current values of versionCode, versionName, packageName, minSdkVersion, targetSdkVersion, and compileSdkVersion. [bool]")
 
 	// Custom usage function to format the help message
 	flag.Usage = func() {
@@ -53,6 +56,8 @@ func main() {
 		fmt.Fprintln(flag.CommandLine.Output(), "\tSet the application's package name.")
 		fmt.Fprintln(flag.CommandLine.Output(), "  -targetSdkVersion [uint]")
 		fmt.Fprintln(flag.CommandLine.Output(), "\tSet the target SDK version.")
+        fmt.Fprintln(flag.CommandLine.Output(), "  -compileSdkVersion [uint]")
+        fmt.Fprintln(flag.CommandLine.Output(), "\tSet the compile SDK version.")
 		fmt.Fprintln(flag.CommandLine.Output(), "  -versionCode [uint]")
 		fmt.Fprintln(flag.CommandLine.Output(), "\tSet the application's version code.")
 		fmt.Fprintln(flag.CommandLine.Output(), "  -versionName [string]")
@@ -81,6 +86,7 @@ func main() {
 		packageName:      *packageName,
 		minSdkVersion:    int32(*minSdkVersion),
 		targetSdkVersion: int32(*targetSdkVersion),
+        compileSdkVersion: int32(*compileSdkVersion),
 	}
 
 	path := flag.Arg(0)
@@ -259,6 +265,8 @@ func printManifestAttributes(path string) {
 			fmt.Println("versionCode:", attr.Value)
 		case versionNameAttr:
 			fmt.Println("versionName:", attr.Value)
+        case compileSdkVersionAttr:
+            fmt.Println("compileSdkVersion:", attr.Value)
 		}
 	}
 }
@@ -292,7 +300,7 @@ func updateManifest(path string, config *Config) {
 						if config.targetSdkVersion > 0 {
 							fmt.Println("Changing targetSdkVersion from", attr.Value, "to", config.targetSdkVersion)
 							attr.Value = strconv.Itoa(int(config.targetSdkVersion))
-						}
+                        }
 					}
 				}
 			}
@@ -327,6 +335,18 @@ func updateManifest(path string, config *Config) {
 				fmt.Println("Changing versionName from", attr.Value, "to", config.versionName)
 				attr.Value = config.versionName
 			}
+        case compileSdkVersionAttr:
+            if config.compileSdkVersion > 0 {
+                prim := attr.GetCompiledItem().GetPrim()
+                if x, ok := prim.GetOneofValue().(*Primitive_IntDecimalValue); ok {
+                    fmt.Println("Changing compileSdkVersion from", x.IntDecimalValue, "to", config.compileSdkVersion)
+                    x.IntDecimalValue = int32(config.compileSdkVersion)
+                }
+                // In AABs the value exists, but when using aapt2 to convert the binary manifest the value is gone
+                if attr.Value != "" {
+                    attr.Value = fmt.Sprint(config.compileSdkVersion)
+                }
+            }
 		}
 	}
 
