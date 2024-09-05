@@ -19,20 +19,22 @@ import (
 )
 
 const (
-	tmpDir                  = "/tmp"
-	namespace               = "http://schemas.android.com/apk/res/android"
-	versionCodeAttr         = "versionCode"
-	versionNameAttr         = "versionName"
-    compileSdkVersionAttr   = "compileSdkVersion"
+	tmpDir                          = "/tmp"
+	namespace                       = "http://schemas.android.com/apk/res/android"
+	versionCodeAttr                 = "versionCode"
+	versionNameAttr                 = "versionName"
+    compileSdkVersionAttr           = "compileSdkVersion"
+    platformBuildVersionCodeAttr    = "platformBuildVersionCode"
 )
 
 type Config struct {
-	versionCode       int32
-	versionName       string
-	packageName       string
-	minSdkVersion     int32
-	targetSdkVersion  int32
-    compileSdkVersion int32
+	versionCode                 int32
+	versionName                 string
+	packageName                 string
+	minSdkVersion               int32
+	targetSdkVersion            int32
+    compileSdkVersion           int32
+    platformBuildVersionCode    int32
 }
 
 func main() {
@@ -43,13 +45,16 @@ func main() {
 	minSdkVersion := flag.Uint("minSdkVersion", 0, "Set the minimum SDK version. [uint]")
 	targetSdkVersion := flag.Uint("targetSdkVersion", 0, "Set the target SDK version. [uint]")
     compileSdkVersion := flag.Uint("compileSdkVersion", 0, "Set the compile SDK version. [unit]")
-	list := flag.Bool("list", false, "List current values of versionCode, versionName, packageName, minSdkVersion, targetSdkVersion, and compileSdkVersion. [bool]")
+    platformBuildVersionCode := flag.Uint("platformBuildVersionCode", 0, "Set the platform Build Version Code. [unit]")
+	list := flag.Bool("list", false, "List current values of versionCode, versionName, packageName, minSdkVersion, targetSdkVersion, compileSdkVersion, and platformBuildVersionCode. [bool]")
 
 	// Custom usage function to format the help message
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
 		fmt.Fprintln(flag.CommandLine.Output(), "  -list")
 		fmt.Fprintln(flag.CommandLine.Output(), "\tList current values of versionCode, versionName, packageName, minSdkVersion, and targetSdkVersion.")
+        fmt.Fprintln(flag.CommandLine.Output(), "  -platformBuildVersionCode [uint]")
+        fmt.Fprintln(flag.CommandLine.Output(), "\tSet the platform Build Version Code.")
 		fmt.Fprintln(flag.CommandLine.Output(), "  -minSdkVersion [uint]")
 		fmt.Fprintln(flag.CommandLine.Output(), "\tSet the minimum SDK version.")
 		fmt.Fprintln(flag.CommandLine.Output(), "  -package [string]")
@@ -81,12 +86,13 @@ func main() {
 	}
 
 	config := &Config{
-		versionCode:      int32(*versionCode),
-		versionName:      *versionName,
-		packageName:      *packageName,
-		minSdkVersion:    int32(*minSdkVersion),
-		targetSdkVersion: int32(*targetSdkVersion),
-        compileSdkVersion: int32(*compileSdkVersion),
+		versionCode:                int32(*versionCode),
+		versionName:                *versionName,
+		packageName:                *packageName,
+		minSdkVersion:              int32(*minSdkVersion),
+		targetSdkVersion:           int32(*targetSdkVersion),
+        compileSdkVersion:          int32(*compileSdkVersion),
+        platformBuildVersionCode:   int32(*platformBuildVersionCode),
 	}
 
 	path := flag.Arg(0)
@@ -267,6 +273,8 @@ func printManifestAttributes(path string) {
 			fmt.Println("versionName:", attr.Value)
         case compileSdkVersionAttr:
             fmt.Println("compileSdkVersion:", attr.Value)
+        case platformBuildVersionCodeAttr:
+            fmt.Println("platformBuildVersionCode:", attr.Value)
 		}
 	}
 }
@@ -345,6 +353,18 @@ func updateManifest(path string, config *Config) {
                 // In AABs the value exists, but when using aapt2 to convert the binary manifest the value is gone
                 if attr.Value != "" {
                     attr.Value = fmt.Sprint(config.compileSdkVersion)
+                }
+            }
+        case platformBuildVersionCodeAttr:
+            if config.platformBuildVersionCode > 0 {
+                prim := attr.GetCompiledItem().GetPrim()
+                if x, ok := prim.GetOneofValue().(*Primitive_IntDecimalValue); ok {
+                    fmt.Println("Changing platformBuildVersionCode from", x.IntDecimalValue, "to", config.platformBuildVersionCode)
+                    x.IntDecimalValue = int32(config.compileSdkVersion)
+                }
+                // In AABs the value exists, but when using aapt2 to convert the binary manifest the value is gone
+                if attr.Value != "" {
+                    attr.Value = fmt.Sprint(config.platformBuildVersionCode)
                 }
             }
 		}
